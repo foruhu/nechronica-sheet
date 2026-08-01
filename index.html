@@ -121,7 +121,7 @@ tr.broken input, tr.broken textarea { text-decoration: line-through; opacity: 0.
           <td class="label-cell">サブクラス：</td>
           <td>
             <select id="sc" onchange="onClassChange()">
-              <option selected>ロマネスク</option><option>ステーシー</option><option>タナトス</option><option>レクイエム</option><option>バロック</option><option>ホリック</option><option>ゴシック</option>
+              <option selected>ステーシー</option><option>タナトス</option><option>ゴシック</option><option>レクイエム</option><option>バロック</option><option>ロマネスク</option>
             </select>
           </td>
           <td id="sc-wep">0</td><td id="sc-mut">0</td><td id="sc-cyb">2</td>
@@ -321,8 +321,8 @@ const SKILL_DATABASE = {
 };
 
 const CLASS_PARTS = {
-  'ステーシー': [1,0,1], 'タナトス': [2,0,0], 'ゴシック': [0,0,2],
-  'レクイエム': [1,1,0], 'バロック': [0,2,0], 'ホリック': [0,1,1], 'ロマネスク': [0,0,2]
+  'ステーシー': [1,1,0], 'タナトス': [1,0,1], 'ゴシック': [0,1,1],
+  'レクイエム': [2,0,0], 'バロック': [0,2,0],  'ロマネスク': [0,0,2]
 };
 
 const DEFAULT_PARTS = {
