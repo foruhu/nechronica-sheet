@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+　<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -245,6 +245,48 @@ tr.broken input, tr.broken textarea { text-decoration: line-through; opacity: 0.
   <button type="button" class="sec" onclick="exportJSON()">JSON保存</button>
 </div>
 
+<!-- 寵愛点サマリー -->
+<div style="background: #25252e; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #444;">
+  <h3 style="margin-top: 0; color: #8ff; font-size: 1rem; border-bottom: 1px solid #555; padding-bottom: 4px;">寵愛点サマリー</h3>
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem;">
+    <div>獲得戦闘寵愛: <b id="total-battle-chouai" style="color: #8ff;">0</b> pt</div>
+    <div>獲得個人寵愛: <b id="total-personal-chouai" style="color: #8ff;">0</b> pt</div>
+    <div>総獲得寵愛: <b id="total-earned-chouai" style="color: #8ff;">0</b> pt</div>
+    <div>総使用寵愛: <b id="total-used-chouai" style="color: #ff88c2;">0</b> pt</div>
+    <div style="font-size: 1.05rem;">現在の残り寵愛: <b id="current-chouai" style="color: #8ff; font-size: 1.2rem;">0</b> pt</div>
+  </div>
+</div>
+
+<!-- セッション履歴（獲得） -->
+<h3 style="color: #ccc; font-size: 0.95rem; margin-bottom: 6px;">■ セッション履歴（獲得寵愛）</h3>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.85rem;">
+  <thead>
+    <tr style="background: #1e1e24; color: #aaa; text-align: center;">
+      <th style="padding: 6px; border: 1px solid #444;">シナリオ名</th>
+      <th style="padding: 6px; border: 1px solid #444; width: 80px;">戦闘寵愛</th>
+      <th style="padding: 6px; border: 1px solid #444; width: 80px;">個人寵愛</th>
+      <th style="padding: 6px; border: 1px solid #444;">メモ（参加日など）</th>
+      <th style="padding: 6px; border: 1px solid #444; width: 40px;">削除</th>
+    </tr>
+  </thead>
+  <tbody id="session-history-tbody"></tbody>
+</table>
+<button type="button" onclick="addSessionHistoryRow()" style="background: #333; color: #fff; border: 1px solid #666; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-bottom: 20px;">+ 履歴を追加</button>
+
+<!-- 寵愛点の使い道（消費） -->
+<h3 style="color: #ccc; font-size: 0.95rem; margin-bottom: 6px;">■ 寵愛点の使い道・強化履歴</h3>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.85rem;">
+  <thead>
+    <tr style="background: #1e1e24; color: #aaa; text-align: center;">
+      <th style="padding: 6px; border: 1px solid #444; width: 110px;">使用点数</th>
+      <th style="padding: 6px; border: 1px solid #444;">使い道・備考（例: 武装基本値+1、基本パーツ修復など）</th>
+      <th style="padding: 6px; border: 1px solid #444; width: 40px;">削除</th>
+    </tr>
+  </thead>
+  <tbody id="chouai-use-tbody"></tbody>
+</table>
+<button type="button" onclick="addChouaiUseRow()" style="background: #333; color: #fff; border: 1px solid #666; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">+ 使い道を追加</button>
+
 <script>
 // --- DB類 (memo未定義部分は自動で空文字扱い) ---
 const SKILL_DATABASE = {
@@ -351,106 +393,106 @@ const DEFAULT_PARTS = {
 const EXTRA_PARTS_DB = {
   head: [
     { name: 'カンフー', type: '武装', level: 1, timing: 'オート', cost: '無し', range: '自身', memo: '最大行動値+1' },
-    { name: '発勁', type: '武装', level: 2, timing: 'ラピッド', cost: '2', range: '0' },
+    { name: '発勁', type: '武装', level: 2, timing: '', cost: '', range: '' },
     { name: 'けもみみ', type: '変異', level: 2, timing: 'オート', cost: '無し', range: '自身', memo: '最大行動値+1。行動判定で使用した際、大失敗してもこのパーツは損傷しない。' },
-    { name: 'よだれじた', type: '変異', level: 2, timing: 'ジャッジ', cost: '2', range: '0～1' },
-    { name: 'よぶんなあたま', type: '変異', level: 3, timing: 'オート', cost: '無し', range: '自身' },
+    { name: 'よだれじた', type: '変異', level: 2, timing: '', cost: '', range: '' },
+    { name: 'よぶんなあたま', type: '変異', level: 3, timing: '', cost: '', range: '' },
     { name: 'きもちいいくすり', type: '変異', level: 3, timing: 'ダメージ', cost: '1', range: '自身', memo: '自身がダメージを受けた際のみ使用可。任意の未練から、狂気点を1減少させてよい。' },
     { name: 'アドレナリン', type: '改造', level: 1, timing: 'ラピッド', cost: '無し', range: '自身', memo: '最大行動値+1' },
-    { name: 'セイバートゥース', type: '改造', level: 1, timing: 'アクション', cost: '2', range: '0' },
+    { name: 'セイバートゥース', type: '改造', level: 1, timing: '', cost: '', range: '' },
     { name: 'ボルトヘッド', type: '改造', level: 1, timing: 'ジャッジ', cost: '1', range: '自身', memo: '支援2' },
     { name: 'ボイスエフェクト', type: '改造', level: 1, timing: 'ラピッド', cost: '0〜2', range: '自身', memo: '最大行動値+1' },
-    { name: 'スコープ', type: '改造', level: 2, timing: 'ジャッジ', cost: '0', range: '自身' },
+    { name: 'スコープ', type: '改造', level: 2, timing: '', cost: '', range: '' },
     { name: 'エンバーミング', type: '改造', level: 3, timing: 'ジャッジ', cost: '2', range: '0', memo: '妨害2。1ターンに何度も使用可。1回の判定は重複不可。' }
   ],
   arm: [
-    { name: '釘バット', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '0' },
-    { name: 'バール', type: '武装', level: 1, timing: 'アクション', cost: '3', range: '0' },
+    { name: '釘バット', type: '武装', level: 1, timing: '', cost: '', range: '' },
+    { name: 'バール', type: '武装', level: 1, timing: '', cost: '', range: '' },
     { name: '斧', type: '武装', level: 1, timing: 'アクション', cost: '3', range: '0' },
     { name: '肉切り包丁', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '0', memo: '白兵2' },
     { name: '日本刀', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '0', memo: '白兵1＋切断' },
     { name: 'チェーンソー', type: '武装', level: 1, timing: 'アクション', cost: '3', range: '0', memo: '白兵2+切断' },
-    { name: '大型拳銃', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '0〜1' },
-    { name: '狙撃ライフル', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '2〜3' },
+    { name: '大型拳銃', type: '武装', level: 1, timing: '', cost: '', range: '' },
+    { name: '狙撃ライフル', type: '武装', level: 1, timing: '', cost: '', range: '' },
     { name: '合金トランク', type: '武装', level: 2, timing: 'ダメージ', cost: '0', range: '自身', memo: '防御1+爆発無効' },
     { name: '鉄球鎖', type: '武装', level: 2, timing: 'アクション', cost: '2', range: '0〜1', memo: '白兵1+転倒' },
-    { name: 'ショットガン', type: '武装', level: 2, timing: 'アクション', cost: '2', range: '0〜1' },
-    { name: 'マシンガン', type: '武装', level: 2, timing: 'アクション', cost: '3', range: '0〜1' },
-    { name: '熊撃ち銃', type: '武装', level: 2, timing: 'アクション', cost: '3', range: '0〜2' },
-    { name: '二丁拳銃', type: '武装', level: 2, timing: 'アクション', cost: '3', range: '0〜1' },
+    { name: 'ショットガン', type: '武装', level: 2, timing: '', cost: '', range: '' },
+    { name: 'マシンガン', type: '武装', level: 2, timing: '', cost: '', range: '' },
+    { name: '熊撃ち銃', type: '武装', level: 2, timing: '', cost: '', range: '' },
+    { name: '二丁拳銃', type: '武装', level: 2, timing: '', cost: '', range: '' },
     { name: 'ジョギリ', type: '武装', level: 3, timing: 'アクション', cost: '3', range: '0', memo: '白兵4、+攻撃判定+1' },
     { name: '芝刈り機', type: '武装', level: 3, timing: 'アクション', cost: '3', range: '0', memo: '白兵3+連撃2' },
-    { name: '名刀', type: '武装', level: 3, timing: 'アクション', cost: '2', range: '0' },
-    { name: '空飛ぶギロチン', type: '武装', level: 3, timing: 'アクション', cost: '3', range: '0' },
-    { name: '対戦車ライフル', type: '武装', level: 3, timing: 'アクション', cost: '4', range: '1～3' },
-    { name: 'アンデッドガン', type: '武装', level: 3, timing: 'アクション', cost: '3', range: '1～2' },
-    { name: '火炎放射器', type: '武装', level: 3, timing: 'アクション', cost: '2', range: '0～1' },
-    { name: 'ランチャー', type: '武装', level: 3, timing: 'アクション', cost: '4', range: '1～2' },
-    { name: 'かぎづめ', type: '変異', level: 1, timing: 'アクション', cost: '2', range: '0' },
+    { name: '名刀', type: '武装', level: 3, timing: '', cost: '', range: '' },
+    { name: '空飛ぶギロチン', type: '武装', level: 3, timing: '', cost: '', range: '' },
+    { name: '対戦車ライフル', type: '武装', level: 3, timing: '', cost: '', range: '' },
+    { name: 'アンデッドガン', type: '武装', level: 3, timing: '', cost: '', range: '' },
+    { name: '火炎放射器', type: '武装', level: 3, timing: '', cost: '', range: '' },
+    { name: 'ランチャー', type: '武装', level: 3, timing: 'アクション', cost: '4', range: '' },
+    { name: 'かぎづめ', type: '変異', level: 1, timing: '', cost: '', range: '' },
     { name: 'よぶんなうで', type: '変異', level: 2, timing: 'ラピッド', cost: '0', range: '自身', memo: '望む「アクション」マニューバ1つを「ラピッド」として使用する。' },
-    { name: 'よだれじた', type: '変異', level: 2, timing: 'ジャッジ', cost: '2', range: '0〜1' },
-    { name: 'シザーハンズ', type: '改造', level: 1, timing: 'アクション', cost: '2', range: '0' },
-    { name: 'ガントレット', type: '改造', level: 3, timing: 'オート', cost: '無し', range: '自身' },
-    { name: 'アームバイス', type: '改造', level: 3, timing: 'ジャッジ', cost: '1', range: '0' }
+    { name: 'よだれじた', type: '変異', level: 2, timing: '', cost: '', range: '' },
+    { name: 'シザーハンズ', type: '改造', level: 1, timing: '', cost: '', range: '' },
+    { name: 'ガントレット', type: '改造', level: 3, timing: '', cost: '', range: '' },
+    { name: 'アームバイス', type: '改造', level: 3, timing: '', cost: '', range: '' }
   ],
   body: [
     { name: 'つぎはぎ', type: '変異', level: 1, timing: 'オート', cost: '無し', range: '自身', memo: 'バトルパート終了時、このパーツと損傷した基本パーツ1つを修復してよい。' },
     { name: 'しんぞう', type: '変異', level: 1, timing: 'オート', cost: '無し', range: '自身', memo: '最大行動値+1' },
-    { name: 'どろどろ', type: '変異', level: 1, timing: 'ダメージ', cost: '1', range: '0〜1' },
-    { name: 'あるびの', type: '変異', level: 1, timing: 'ジャッジ', cost: '1', range: '0〜1' },
-    { name: 'ちみどろ', type: '変異', level: 1, timing: 'ジャッジ', cost: '1', range: '0〜1' },
-    { name: 'うろこ', type: '変異', level: 2, timing: 'ダメージ', cost: 'なし', range: '自身' },
-    { name: 'やせきず', type: '変異', level: 3, timing: 'オート', cost: '1', range: '自身' },
-    { name: 'だるま', type: '変異', level: 3, timing: 'オート', cost: '無し', range: '自身' },
-    { name: 'サイボーグ', type: '改造', level: 3, timing: 'ダメージ', cost: '0', range: '自身' },
-    { name: 'アーマースキン', type: '改造', level: 1, timing: 'ダメージ', cost: '0', range: '自身' },
-    { name: 'スチールボーン', type: '改造', level: 1, timing: 'ダメージ', cost: '1', range: '自身' },
-    { name: 'サイボーグ', type: '改造', level: 3, timing: 'ダメージ', cost: '0', range: '自身' },
-    { name: 'オートセパレート', type: '改造', level: 3, timing: 'オート', cost: '無し', range: '自身' }
+    { name: 'どろどろ', type: '変異', level: 1, timing: '', cost: '', range: '' },
+    { name: 'あるびの', type: '変異', level: 1, timing: '', cost: '', range: '' },
+    { name: 'ちみどろ', type: '変異', level: 1, timing: '', cost: '', range: '' },
+    { name: 'うろこ', type: '変異', level: 2, timing: '', cost: '', range: '' },
+    { name: 'やせきず', type: '変異', level: 3, timing: '', cost: '', range: '' },
+    { name: 'だるま', type: '変異', level: 3, timing: '', cost: '', range: '' },
+    { name: 'サイボーグ', type: '改造', level: 3, timing: '', cost: '0', range: '' },
+    { name: 'アーマースキン', type: '改造', level: 1, timing: '', cost: '0', range: '' },
+    { name: 'スチールボーン', type: '改造', level: 1, timing: '', cost: '1', range: '' },
+    { name: 'サイボーグ', type: '改造', level: 3, timing: '', cost: '', range: '' },
+    { name: 'オートセパレート', type: '改造', level: 3, timing: '', cost: '', range: '' }
   ],
   leg: [
     { name: '仕込みブーツ', type: '武装', level: 2, timing: 'アクション', cost: '2', range: '0', memo: '白兵攻撃2、攻撃判定の出目+1' },
     { name: 'しっぽ', type: '変異', level: 1, timing: 'オート', cost: '無し', range: '自身', memo: '最大行動値+1。' },
-    { name: 'はりつき', type: '変異', level: 1, timing: 'アクション', cost: '3', range: '自身' },
-    { name: 'よぶんなあし', type: '変異', level: 3, timing: 'オート', cost: '無し', range: '自身' },
+    { name: 'はりつき', type: '変異', level: 1, timing: '', cost: '', range: '' },
+    { name: 'よぶんなあし', type: '変異', level: 3, timing: '', cost: '', range: '' },
     { name: 'けもあし', type: '変異', level: 3, timing: 'アクション', cost: '2', range: '自身', memo: '移動1〜2。' },
-    { name: 'キャンサー', type: '改造', level: 3, timing: 'オート', cost: '無し', range: '自身' },
-    { name: 'ホッパー', type: '改造', level: 3, timing: 'ラピッド', cost: '2', range: '自身' }
+    { name: 'キャンサー', type: '改造', level: 3, timing: '', cost: '', range: '' },
+    { name: 'ホッパー', type: '改造', level: 3, timing: '', cost: '', range: '' }
   ]
 };
 
 const COMMON_EXTRA_PARTS = [
-  { name: '火炎ビン', type: '武装', level: 1, timing: 'アクション', cost: '2', range: '0〜1' },
+  { name: '火炎ビン', type: '武装', level: 1, timing: '', cost: '', range: '' },
   { name: '有刺鉄線', type: '武装', level: 2, timing: 'ダメージ', cost: '0', range: '自身', memo: '自身がダメージを与えた際のみ使用可。白兵・肉弾ダメージ+1' },
-  { name: '手榴弾', type: '武装', level: 2, timing: 'アクション', cost: '2', range: '0〜1' },
-  { name: '単分子繊維', type: '武装', level: 3, timing: 'アクション', cost: '2', range: '0〜1' },
-  { name: 'ダイナマイト', type: '武装', level: 3, timing: 'アクション', cost: '3', range: '0〜1' },
-  { name: 'うじむし', type: '変異', level: 1, timing: 'オート', cost: '無し', range: '自身' },
+  { name: '手榴弾', type: '武装', level: 2, timing: '', cost: '', range: '' },
+  { name: '単分子繊維', type: '武装', level: 3, timing: '', cost: '', range: '' },
+  { name: 'ダイナマイト', type: '武装', level: 3, timing: '', cost: '', range: '' },
+  { name: 'うじむし', type: '変異', level: 1, timing: '', cost: '', range: '' },
   { name: 'おおあな', type: '変異', level: 1, timing: 'ジャッジ', cost: '0', range: '0〜3', memo: 'あなたに対する攻撃判定にのみ使用可。妨害1' },
-  { name: 'おとこのこ', type: '変異', level: 2, timing: 'オート', cost: '無し', range: '自身' },
-  { name: 'ほねやり', type: '変異', level: 2, timing: 'アクション', cost: '2', range: '0' },
-  { name: 'どくばり', type: '変異', level: 2, timing: 'アクション', cost: '3', range: '0' },
-  { name: 'よぷんなめ', type: '変異', level: 2, timing: 'ジャッジ', cost: '1', range: '0〜1' },
-  { name: 'しょくしゅ', type: '変異', level: 2, timing: 'ラピッド', cost: '1', range: '0〜1' },
+  { name: 'おとこのこ', type: '変異', level: 2, timing: 'オート', cost: '無し', range: '' },
+  { name: 'ほねやり', type: '変異', level: 2, timing: 'アクション', cost: '2', range: '' },
+  { name: 'どくばり', type: '変異', level: 2, timing: '', cost: '', range: '' },
+  { name: 'よぷんなめ', type: '変異', level: 2, timing: '', cost: '', range: '' },
+  { name: 'しょくしゅ', type: '変異', level: 2, timing: '', cost: '', range: '' },
   { name: 'ほとけかずら', type: '変異', level: 2, timing: 'ジャッジ', cost: '0', range: '0', memo: '支援1か妨害1' },
-  { name: 'くされじる', type: '変異', level: 3, timing: 'アクション', cost: '3', range: '0〜1' },
-  { name: 'にくむち', type: '変異', level: 3, timing: 'アクション', cost: '3', range: '0' },
-  { name: 'やぶれひまく', type: '変異', level: 3, timing: 'ダメージ', cost: '0', range: '自身' },
+  { name: 'くされじる', type: '変異', level: 3, timing: '', cost: '', range: '' },
+  { name: 'にくむち', type: '変異', level: 3, timing: '', cost: '', range: '' },
+  { name: 'やぶれひまく', type: '変異', level: 3, timing: '', cost: '', range: '' },
   { name: 'しびとだけ', type: '変異', level: 3, timing: 'ジャッジ', cost: '0', range: '0', memo: '妨害2。' },
-  { name: 'リミッター', type: '改造', level: 1, timing: 'オート', cost: '0', range: '自身' },
-  { name: 'ジェットノズル', type: '改造', level: 1, timing: 'ダメージ', cost: '0', range: '自身' },
+  { name: 'リミッター', type: '改造', level: 1, timing: '', cost: '', range: '' },
+  { name: 'ジェットノズル', type: '改造', level: 1, timing: '', cost: '', range: '' },
   { name: 'リモートアタック', type: '改造', level: 1, timing: 'アクション', cost: '3', range: '0〜1', memo: '肉弾攻撃1＋転倒' },
-  { name: 'ゾンビボム', type: '改造', level: 2, timing: 'ダメージ', cost: '0', range: '0' },
-  { name: 'エレクトリガー', type: '改造', level: 2, timing: 'アクション', cost: '2', range: '0' },
-  { name: 'ドリル', type: '改造', level: 2, timing: 'アクション', cost: '3', range: '0' },
-  { name: 'アサシンブレード', type: '改造', level: 2, timing: 'ラピッド', cost: '2', range: '0' },
-  { name: 'レーザービーム', type: '改造', level: 2, timing: 'アクション', cost: '3', range: '0〜3' },
+  { name: 'ゾンビボム', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'エレクトリガー', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'ドリル', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'アサシンブレード', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'レーザービーム', type: '改造', level: 2, timing: '', cost: '', range: '' },
   { name: 'スパイク', type: '改造', level: 2, timing: 'ダメージ', cost: '1', range: '自身', memo: '自身がダメージを与えた際のみ使用可。白兵・肉弾ダメージ+2' },
-  { name: 'テンタクル', type: '改造', level: 2, timing: 'ラピッド', cost: '1', range: '0〜1' },
-  { name: 'ワイヤーリール', type: '改造', level: 2, timing: 'ラピッド', cost: '3', range: '0〜2' },
-  { name: 'マニピュレーター', type: '改造', level: 3, timing: 'ラピッド', cost: '2', range: '0〜1' },
-  { name: 'パイルバンカー', type: '改造', level: 3, timing: 'アクション', cost: '2', range: '0' },
-  { name: 'ライトセイバー', type: '改造', level: 3, timing: 'アクション', cost: '2', range: '0' }
+  { name: 'テンタクル', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'ワイヤーリール', type: '改造', level: 2, timing: '', cost: '', range: '' },
+  { name: 'マニピュレーター', type: '改造', level: 3, timing: '', cost: '', range: '' },
+  { name: 'パイルバンカー', type: '改造', level: 3, timing: '', cost: '', range: '' },
+  { name: 'ライトセイバー', type: '改造', level: 3, timing: '', cost: '', range: '' }
 ];
 
 const LIMIT_TABLE_DATA = [
@@ -652,14 +694,14 @@ function resetUsed() {
 }
 
 function onClassChange() {
-  const mc = document.getElementById('mc').value;
-  const sc = document.getElementById('sc').value;
-  const mcParts = CLASS_PARTS[mc] || [0,0,2];
-  const scParts = CLASS_PARTS[sc] || [0,0,2];
+  const mc = document.getElementById('mc')?.value || '';
+  const sc = document.getElementById('sc')?.value || '';
+  const mcParts = (typeof CLASS_PARTS !== 'undefined' && CLASS_PARTS[mc]) || [0,0,2];
+  const scParts = (typeof CLASS_PARTS !== 'undefined' && CLASS_PARTS[sc]) || [0,0,2];
 
   ['wep', 'mut', 'cyb'].forEach((key, idx) => {
-    document.getElementById(`mc-${key}`).textContent = mcParts[idx];
-    document.getElementById(`sc-${key}`).textContent = scParts[idx];
+    if (document.getElementById(`mc-${key}`)) document.getElementById(`mc-${key}`).textContent = mcParts[idx];
+    if (document.getElementById(`sc-${key}`)) document.getElementById(`sc-${key}`).textContent = scParts[idx];
   });
 
   calcTotals();
@@ -679,7 +721,6 @@ function calcTotals() {
   if (document.getElementById('total-mut')) document.getElementById('total-mut').textContent = totals.mut;
   if (document.getElementById('total-cyb')) document.getElementById('total-cyb').textContent = totals.cyb;
 
-  // 現在のパーツ配置数を集計
   const currentCounts = { '武装': {1:0, 2:0, 3:0}, '変異': {1:0, 2:0, 3:0}, '改造': {1:0, 2:0, 3:0} };
 
   document.querySelectorAll('#parts-container tr').forEach(tr => {
@@ -690,7 +731,6 @@ function calcTotals() {
     }
   });
 
-  // スキル「時計仕掛け」の有無チェック
   const hasClockwork = Array.from(document.querySelectorAll('#skill-tbody select')).some(s => s.value === '時計仕掛け');
 
   const categories = [
@@ -701,19 +741,17 @@ function calcTotals() {
 
   const limitTbody = document.getElementById('limit-tbody');
   if (limitTbody) {
-    limitTbody.innerHTML = ''; // テーブル内容をリセット
+    limitTbody.innerHTML = '';
   }
 
   categories.forEach(cat => {
-    const limit = getLimitByVal(cat.total);
+    const limit = (typeof getLimitByVal === 'function') ? getLimitByVal(cat.total) : { lv1:0, lv2:0, lv3:0 };
     [1, 2, 3].forEach(lv => {
-      const baseLimit = limit[`lv${lv}`];
-      // 時計仕掛けボーナス（改造Lv3のみ+1）
+      const baseLimit = limit[`lv${lv}`] || 0;
       const autoBonus = (cat.name === '改造' && lv === 3 && hasClockwork) ? 1 : 0;
       const maxAllowed = baseLimit + autoBonus; 
       const current = currentCounts[cat.name][lv];
 
-      // スパン表示の更新（もしページ内に存在する場合）
       const usedSpan = document.getElementById(`used-${cat.key}-lv${lv}`);
       const maxSpan = document.getElementById(`max-${cat.key}-lv${lv}`);
       if (usedSpan) usedSpan.textContent = current;
@@ -723,7 +761,6 @@ function calcTotals() {
         maxSpan.style.fontWeight = 'bold';
       }
 
-      // ★判定テキストの生成
       let statusHtml = `<span style="color:#aaa;">${current}/${maxAllowed}</span>`;
       if (current > maxAllowed) {
         statusHtml = `<span class="limit-ng" style="color:#ff6666; font-weight:bold;">超過 (${current}/${maxAllowed})</span>`;
@@ -731,7 +768,6 @@ function calcTotals() {
         statusHtml = `<span class="limit-selected" style="color:#88ff88;">OK (${current}/${maxAllowed})</span>`;
       }
 
-      // テーブル行の生成（追加枠手動を削除し、判定を残す）
       if (limitTbody) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -746,11 +782,12 @@ function calcTotals() {
     });
   });
 
-  updateExtraPartOptions();
+  if (typeof updateExtraPartOptions === 'function') updateExtraPartOptions();
 }
 
 function addRow(target = '', emotion = '', madness = 0) {
   const tbody = document.getElementById('list');
+  if (!tbody) return;
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input type="text" value="${target}"></td>
@@ -785,6 +822,7 @@ function updateSkillOptions() {
 
 function addSkillRow(category, skillName = '', memo = '') {
   const tbody = document.getElementById('skill-tbody');
+  if (!tbody) return;
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input type="text" value="${category}" readonly style="background:#1e1e24;color:#ccc;border:none;"></td>
@@ -820,28 +858,121 @@ function onSkillSelect(selectElem) {
   calcTotals();
 }
 
-// --- 保存・読込（全データ連動） ---
+// --- 1. セッション履歴（獲得）の行追加 ---
+function addSessionHistoryRow(scenario = '', battle = 0, personal = 0, memo = '') {
+  const tbody = document.getElementById('session-history-tbody');
+  if (!tbody) return;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="text" class="h-scenario" value="${scenario}" placeholder="例: 狂い咲く薔薇" style="width: 95%; background: #1a1a20; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 3px;">
+    </td>
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="number" class="battle-pts" value="${battle}" min="0" oninput="calcChouaiTotals()" style="width: 75%; background: #1a1a20; color: #8ff; border: 1px solid #555; padding: 4px; text-align: center; font-weight: bold; border-radius: 3px;"> pt
+    </td>
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="number" class="personal-pts" value="${personal}" min="0" oninput="calcChouaiTotals()" style="width: 75%; background: #1a1a20; color: #8ff; border: 1px solid #555; padding: 4px; text-align: center; font-weight: bold; border-radius: 3px;"> pt
+    </td>
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="text" class="h-memo" value="${memo}" placeholder="例: 2026/05/10 通過" style="width: 95%; background: #1a1a20; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 3px;">
+    </td>
+    <td style="padding: 4px; border: 1px solid #444; text-align: center;">
+      <button type="button" onclick="this.closest('tr').remove(); calcChouaiTotals();" style="background: #ff4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer;">X</button>
+    </td>
+  `;
+
+  tbody.appendChild(tr);
+  calcChouaiTotals();
+}
+
+// --- 2. 寵愛点の使い道（消費）の行追加 ---
+function addChouaiUseRow(used = 0, memo = '') {
+  const tbody = document.getElementById('chouai-use-tbody');
+  if (!tbody) return;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="number" class="used-pts" value="${used}" min="0" oninput="calcChouaiTotals()" style="width: 75%; background: #1a1a20; color: #ff88c2; border: 1px solid #555; padding: 4px; text-align: center; font-weight: bold; border-radius: 3px;"> pt
+    </td>
+    <td style="padding: 4px; border: 1px solid #444;">
+      <input type="text" class="use-memo" value="${memo}" placeholder="例: 武装基本値+1、基本パーツ修復" style="width: 95%; background: #1a1a20; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 3px;">
+    </td>
+    <td style="padding: 4px; border: 1px solid #444; text-align: center;">
+      <button type="button" onclick="this.closest('tr').remove(); calcChouaiTotals();" style="background: #ff4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer;">X</button>
+    </td>
+  `;
+
+  tbody.appendChild(tr);
+  calcChouaiTotals();
+}
+
+// --- 3. 寵愛点計算処理 ---
+function calcChouaiTotals() {
+  let totalBattle = 0;
+  let totalPersonal = 0;
+  let totalUsed = 0;
+
+  // 獲得寵愛の計算
+  document.querySelectorAll('#session-history-tbody .battle-pts').forEach(input => {
+    totalBattle += parseInt(input.value, 10) || 0;
+  });
+  document.querySelectorAll('#session-history-tbody .personal-pts').forEach(input => {
+    totalPersonal += parseInt(input.value, 10) || 0;
+  });
+
+  // 使用寵愛の計算
+  document.querySelectorAll('#chouai-use-tbody .used-pts').forEach(input => {
+    totalUsed += parseInt(input.value, 10) || 0;
+  });
+
+  const totalEarned = totalBattle + totalPersonal;
+  const current = totalEarned - totalUsed;
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTxt('total-battle-chouai', totalBattle);
+  setTxt('total-personal-chouai', totalPersonal);
+  setTxt('total-earned-chouai', totalEarned);
+  setTxt('total-used-chouai', totalUsed);
+
+  const currentSpan = document.getElementById('current-chouai');
+  if (currentSpan) {
+    currentSpan.textContent = current;
+    currentSpan.style.color = current < 0 ? '#ff4444' : '#8ff';
+  }
+}
+
+// --- 保存・読込 ---
 function getFullData() {
+  const getVal = id => document.getElementById(id)?.value || '';
+
   const data = {
-    pl: document.getElementById('pl').value,
-    name: document.getElementById('name').value,
-    pos: document.getElementById('pos').value,
-    mc: document.getElementById('mc').value,
-    sc: document.getElementById('sc').value,
-    age: document.getElementById('age').value,
-    ps: document.getElementById('ps').value,
-    hint: document.getElementById('hint').value,
-    mem: document.getElementById('mem').value,
-    act: document.getElementById('act').value,
-    fav: document.getElementById('fav').value,
-    tr: document.getElementById('tr').value,
-    chouaiWep: document.getElementById('chouai-wep').value,
-    chouaiMut: document.getElementById('chouai-mut').value,
-    chouaiCyb: document.getElementById('chouai-cyb').value,
-    bonus: document.querySelector('input[name="bonus"]:checked')?.value || 'wep',
+    pl: getVal('pl'),
+    name: getVal('name'),
+    pos: getVal('pos'),
+    mc: getVal('mc'),
+    sc: getVal('sc'),
+    age: getVal('age'),
+    ps: getVal('ps'),
+    hint: getVal('hint'),
+    mem: getVal('mem'),
+    act: getVal('act'),
+    fav: getVal('fav'),
+    tr: getVal('tr'),
+    chouaiWep: getVal('chouai-wep'),
+    chouaiMut: getVal('chouai-mut'),
+    chouaiCyb: getVal('chouai-cyb'),
+    bonus: document.querySelector('input[name="bonus"][value]:checked')?.value || 'wep',
     skills: [],
     parts: [],
-    list: []
+    list: [],
+    history: [],
+    chouaiUses: []
   };
 
   // スキル
@@ -884,6 +1015,24 @@ function getFullData() {
     }
   });
 
+  // セッション履歴（獲得）
+  document.querySelectorAll('#session-history-tbody tr').forEach(tr => {
+    data.history.push({
+      scenario: tr.querySelector('.h-scenario')?.value || '',
+      battle: tr.querySelector('.battle-pts')?.value || 0,
+      personal: tr.querySelector('.personal-pts')?.value || 0,
+      memo: tr.querySelector('.h-memo')?.value || ''
+    });
+  });
+
+  // 寵愛点の使い道（消費）
+  document.querySelectorAll('#chouai-use-tbody tr').forEach(tr => {
+    data.chouaiUses.push({
+      used: tr.querySelector('.used-pts')?.value || 0,
+      memo: tr.querySelector('.use-memo')?.value || ''
+    });
+  });
+
   return data;
 }
 
@@ -920,15 +1069,39 @@ function applyData(data) {
   onClassChange();
 
   // スキルの復元
-  document.getElementById('skill-tbody').innerHTML = '';
-  if (data.skills) {
-    data.skills.forEach(s => addSkillRow(s.category, s.name, s.memo));
+  const skillTbody = document.getElementById('skill-tbody');
+  if (skillTbody) {
+    skillTbody.innerHTML = '';
+    if (data.skills) {
+      data.skills.forEach(s => addSkillRow(s.category, s.name, s.memo));
+    }
   }
 
   // 未練の復元
-  document.getElementById('list').innerHTML = '';
-  if (data.list) {
-    data.list.forEach(l => addRow(l.target, l.emotion, l.madness));
+  const listTbody = document.getElementById('list');
+  if (listTbody) {
+    listTbody.innerHTML = '';
+    if (data.list) {
+      data.list.forEach(l => addRow(l.target, l.emotion, l.madness));
+    }
+  }
+
+  // 履歴の復元
+  const historyTbody = document.getElementById('session-history-tbody');
+  if (historyTbody) {
+    historyTbody.innerHTML = '';
+    if (data.history) {
+      data.history.forEach(h => addSessionHistoryRow(h.scenario, h.battle, h.personal, h.memo));
+    }
+  }
+
+  // 使い道の復元
+  const useTbody = document.getElementById('chouai-use-tbody');
+  if (useTbody) {
+    useTbody.innerHTML = '';
+    if (data.chouaiUses) {
+      data.chouaiUses.forEach(u => addChouaiUseRow(u.used, u.memo));
+    }
   }
 
   calcTotals();
@@ -1004,9 +1177,30 @@ function exportCcfolia() {
 }
 
 window.onload = function() {
-  renderPartsContainer();
+  if (typeof renderPartsContainer === 'function') renderPartsContainer();
   onClassChange();
 };
 </script>
+　<!-- 右下固定：README.mdへ移動するボタン -->
+<a href="./README.md" target="_blank" rel="noopener noreferrer" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1e1e24;
+  color: #8ff;
+  border: 1px solid #555;
+  padding: 8px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+">
+  📜 使い方を見る
+</a>
 </body>
 </html>
