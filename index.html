@@ -1122,7 +1122,7 @@ function closeModal() {
     document.getElementById('save-load-modal').style.display = 'none';
 }
 
-// 一覧のレンダリング（【修正箇所】スロットのボタン描画を追加）
+// 一覧のレンダリング（名前・ポジション・クラス情報を追加表示）
 function renderSlotList(mode) {
     const container = document.getElementById('slot-list');
     container.innerHTML = '';
@@ -1137,8 +1137,20 @@ function renderSlotList(mode) {
         const item = document.createElement('div');
         item.style.cssText = 'background: #121216; border: 1px solid #333; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
         
-        const name = slot.data.name || '無名ドール';
+        const data = slot.data || {};
+        const name = data.name || '無名ドール';
         const dateStr = slot.updatedAt || '日時不明';
+
+        // --- ポジションとクラス（メイン/サブ）情報の取得 ---
+        const pos = data.pos || 'ポジション未設定';
+        const mc = data.mc || '未設定';
+        const sc = data.sc || '';
+        
+        // メインクラスとサブクラスのテキストを整形
+        let classText = mc;
+        if (sc && sc !== mc) {
+            classText += ` / ${sc}`;
+        }
 
         let actionButtonHtml = '';
         if (mode === 'save') {
@@ -1149,8 +1161,9 @@ function renderSlotList(mode) {
 
         item.innerHTML = `
             <div>
-                <div style="font-weight: bold; color: #eee;">${name}</div>
-                <div style="font-size: 0.8em; color: #888;">保存日時: ${dateStr}</div>
+                <div style="font-weight: bold; color: #eee; font-size: 1.05rem;">${name}</div>
+                <div style="font-size: 0.85em; color: #8ff; margin: 2px 0;">【${pos}】 ${classText}</div>
+                <div style="font-size: 0.75em; color: #888;">保存日時: ${dateStr}</div>
             </div>
             <div>
                 ${actionButtonHtml}
