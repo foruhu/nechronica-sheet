@@ -863,23 +863,38 @@ function updateSkillOptions() {
 function addSkillRow(category, skillName = '', memo = '') {
   const tbody = document.getElementById('skill-tbody');
   if (!tbody) return;
+
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" value="${category}" readonly style="background:#1e1e24;color:#ccc;border:none;"></td>
-    <td><select onchange="onSkillSelect(this)"><option value="">-- スキルを選択 --</option></select></td>
-    <td><textarea style="height:38px;">${memo}</textarea></td>
-    <td><button type="button" class="del" onclick="this.closest('tr').remove(); calcTotals(); updateSkillOptions();">X</button></td>
+    <td>
+      <input type="text" value="${category}" readonly style="width: 100%; text-align: center; border: none; background: transparent;">
+    </td>
+    <td>
+      <select onchange="onSkillSelect(this)" style="width: 100%;"></select>
+    </td>
+    <td>
+      <textarea placeholder="効果メモ" rows="2" style="width: 100%; resize: vertical; box-sizing: border-box;">${memo}</textarea>
+    </td>
+    <td style="text-align: center;">
+      <button type="button" class="sec" onclick="this.closest('tr').remove(); updateSkillOptions(); calcTotals();">削除</button>
+    </td>
   `;
+
   tbody.appendChild(tr);
 
-  if (skillName) tr.querySelector('select').value = skillName;
+  if (skillName) {
+    const select = tr.querySelector('select');
+    select.value = skillName;
+  }
+
   updateSkillOptions();
   calcTotals();
 }
 
-function addPosSkillRow() { addSkillRow(document.getElementById('pos').value); }
-function addMcSkillRow() { addSkillRow(document.getElementById('mc').value); }
-function addScSkillRow() { addSkillRow(document.getElementById('sc').value); }
+// 共通ヘルパー関数 getVal() を活用してコンパクトに記述 
+const addPosSkillRow = () => addSkillRow(getVal('pos'));
+const addMcSkillRow  = () => addSkillRow(getVal('mc'));
+const addScSkillRow  = () => addSkillRow(getVal('sc'));
 
 function onSkillSelect(selectElem) {
   const skillName = selectElem.value;
@@ -983,16 +998,30 @@ function calcChouaiTotals() {
 }
 
 // --- 保存・読込 ---
+// 保存時の処理（画面から配列データ化して保存）
 function getFullData() {
-    const getVal = id => document.getElementById(id)?.value || '';
-    const data = {
-        pl: getVal('pl'), name: getVal('name'), pos: getVal('pos'), mc: getVal('mc'), sc: getVal('sc'),
-        age: getVal('age'), ps: getVal('ps'), hint: getVal('hint'), mem: getVal('mem'),
-        act: getVal('act'), fav: getVal('fav'), tr: getVal('tr'),
-        chouaiWep: getVal('chouai-wep'), chouaiMut: getVal('chouai-mut'), chouaiCyb: getVal('chouai-cyb'),
-        bonus: document.querySelector('input[name="bonus"][value]:checked')?.value || 'wep',
-        skills: [], parts: [], list: [], history: [], chouaiUses: []
-    };
+  return {
+    // ...他の設定項目...
+    skills: Array.from(document.querySelectorAll('#skill-tbody tr')).map(tr => ({
+      category: tr.querySelector('input')?.value || '',
+      name: tr.querySelector('select')?.value || '',
+      memo: tr.querySelector('textarea')?.value || ''
+    })),
+  };
+}
+
+// 読み込み時の処理（保存データからテーブル行を再生成）
+function applyData(data) {
+  // ...他の項目復元...
+  const skillTbody = document.getElementById('skill-tbody');
+  if (skillTbody) {
+    skillTbody.innerHTML = '';
+    if (Array.isArray(data.skills)) {
+      data.skills.forEach(s => addSkillRow(s.category, s.name, s.memo));
+    }
+  }
+  calcTotals();
+}
 
     // スキル
     document.querySelectorAll('#skill-tbody tr').forEach(tr => {
